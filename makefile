@@ -5,12 +5,7 @@ REGION ?= "nyc1"
 K8S_VERSION ?= "1.20.11-do.0"
 NODE_COUNT ?= 2
 NODE_SIZE ?= "s-1vcpu-2gb"
-deploy-helm-package:
-	podman run -w /helm-package \
-		-v $PWD/helm-package:/helm-package \
-		-v ~/.kube:/root/.kube \
-		alpine/helm install --atomic --create-namespace -o json --wait -n $(namespace) \
-		--set url=$(url),rampage=$(rampage),timeout=$(timeout),users=$(users) /helm-package
+# terraform commands
 init:
 	podman run -v $(PWD)/infra:/infra -w /infra hashicorp/terraform:light init
 plan:
@@ -32,11 +27,11 @@ apply: checkToken
 		-e TF_VAR_NODE_SIZE=$(NODE_SIZE) \
 	hashicorp/terraform:light apply -auto-approve
 output:
-	podman run -v $(PWD)/infra:/infra -w /infra \
+	@podman run -v $(PWD)/infra:/infra -w /infra \
 	hashicorp/terraform:light output -json > out.json
 create-kubeconfig: output
-	mkdir -p ~/.kube
-	cat out.json | jq .k8s_raw_config.value | sed 's/\\n/\n/g' > ~/.kube/$(CLUSTER_NAME)
+	@mkdir -p ~/.kube
+	@cat out.json | jq .k8s_raw_config.value | sed 's/\\n/\n/g' | sed 's/"//g' > ~/.kube/$(CLUSTER_NAME)
 destroy: checkToken
 	podman run -v $(PWD)/infra:/infra -w /infra \
 		-e DIGITALOCEAN_TOKEN=$(DIGITALOCEAN_TOKEN) \
@@ -54,3 +49,14 @@ else
 	echo "Token not set :("
 	exit 1
 endif
+# k8s commands
+create-configmap: create-kubeconfig
+	@podman run -v ~/.kube/$(CLUSTER_NAME):/.kube/config \
+		-v $(PWD):/files \
+	bitnami/kubectl:latest create configmap locust-file --from-file=/files/app.py
+deploy-helm-package:
+	podman run -w /helm-package \
+		-v $PWD/helm-package:/helm-package \
+		-v ~/.kube:/root/.kube \
+		alpine/helm install --atomic --create-namespace -o json --wait -n $(namespace) \
+		--set url=$(url),rampage=$(rampage),timeout=$(timeout),users=$(users) /helm-package

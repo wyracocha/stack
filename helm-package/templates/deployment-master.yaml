@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust-master
+  labels:
+    role: master
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      role: master
+  template:
+    metadata:
+      labels:
+        role: master
+    spec:
+      containers:
+      - name: locust-master
+        image: locustio/locust
+        args: 
+        - "-f"
+        - "/mnt/locust/app.py"
+        - "--users"
+        - "1000"
+        - "--spawn-rate"
+        - "100"
+        - "--host"
+        - "https://digitalocean.com"
+        - "--headless"
+        - "--master"
+        - "QuickStartUser"
+        ports:
+        - name: locust
+          containerPort: 5557
+          protocol: TCP	  
+        volumeMounts:
+        - name: locust
+          mountPath: /mnt/locust
+      volumes:
+      - name: locust
+        configMap:
+          name: locust-file

@@ -1,0 +1,37 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: locust-worker
+  labels:
+    role: worker
+spec:
+#  replicas: 4
+  selector:
+    matchLabels:
+      role: worker
+  template:
+    metadata:
+      labels:
+        role: worker
+    spec:
+      containers:
+      - name: locust-worker
+        image: locustio/locust
+        args: 
+        - "-f"
+        - "/mnt/locust/app.py"
+        - "--headless"
+        - "--worker"
+        - "--expect-workers"
+        - "1"
+        - "--master-port"
+        - "5557"
+        - "--master-host"
+        - "10.245.47.32" 
+        volumeMounts:
+        - name: locust
+          mountPath: /mnt/locust
+      volumes:
+      - name: locust
+        configMap:
+          name: locust-file
