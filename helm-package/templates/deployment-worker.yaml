@@ -1,5 +1,5 @@
 apiVersion: apps/v1
-kind: Deployment
+kind: DaemonSet
 metadata:
   name: locust-worker
   labels:
@@ -20,14 +20,12 @@ spec:
         args: 
         - "-f"
         - "/mnt/locust/app.py"
-        - "--headless"
         - "--worker"
-        - "--expect-workers"
-        - "1"
         - "--master-port"
         - "5557"
         - "--master-host"
-        - "10.245.47.32" 
+        - "locust-master-svc.default.svc.cluster.local"
+        - "QuickStartUser"
         volumeMounts:
         - name: locust
           mountPath: /mnt/locust
