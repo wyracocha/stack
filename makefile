@@ -54,6 +54,11 @@ create-configmap: create-kubeconfig
 	@podman run -v ~/.kube/$(CLUSTER_NAME):/.kube/config \
 		-v $(PWD):/files \
 	bitnami/kubectl:latest create configmap locust-file --from-file=/files/app.py
+
+install-metrics-server: create-kubeconfig
+	@podman run -v ~/.kube/$(CLUSTER_NAME):/.kube/config \
+	bitnami/kubectl:latest apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
 deploy-helm-package:
 	podman run -w /helm-package \
 		-v $PWD/helm-package:/helm-package \
