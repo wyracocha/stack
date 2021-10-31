@@ -5,7 +5,6 @@ metadata:
   labels:
     role: worker
 spec:
-#  replicas: 4
   selector:
     matchLabels:
       role: worker
@@ -17,15 +16,26 @@ spec:
       containers:
       - name: locust-worker
         image: locustio/locust
+        env:
+        - name: LOCUST_HOST
+          value: https://digitalocean.com
+        - name: LOCUST_MASTER_NODE_HOST
+          value: 10.245.135.31
+        - name: LOCUST_MASTER_NODE_PORT
+          value: "5557"
+        - name: LOCUST_LOGLEVEL
+          value: INFO
+        - name: LOCUST_LOCUSTFILE
+          value: "/mnt/locust/app.py"
         args: 
-        - "-f"
-        - "/mnt/locust/app.py"
         - "--worker"
-        - "--master-port"
-        - "5557"
-        - "--master-host"
-        - "locust-master-svc.default.svc.cluster.local"
-        - "QuickStartUser"
+        resources:
+          limits:
+            cpu: 500m
+            memory: 512Mi
+          requests:
+            cpu: 500m
+            memory: 256Mi
         volumeMounts:
         - name: locust
           mountPath: /mnt/locust

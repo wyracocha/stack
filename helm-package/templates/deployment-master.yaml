@@ -16,19 +16,21 @@ spec:
     spec:
       containers:
       - name: locust-master
+        env:
+        - name: LOCUST_HOST
+          value: https://digitalocean.com
+        - name: LOCUST_LOGLEVEL
+          value: INFO
+        - name: LOCUST_LOCUSTFILE
+          value: /mnt/locust/app.py
         image: locustio/locust
         args: 
-        - "-f"
-        - "/mnt/locust/app.py"
         - "--users"
-        - "10000"
-        - "--spawn-rate"
         - "1000"
-        - "--host"
-        - "https://digitalocean.com"
+        - "--spawn-rate"
+        - "100"
         - "--headless"
         - "--master"
-        - "QuickStartUser"
         ports:
         - name: locust
           containerPort: 5557
