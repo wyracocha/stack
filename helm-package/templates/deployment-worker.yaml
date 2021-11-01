@@ -1,10 +1,11 @@
 apiVersion: apps/v1
-kind: DaemonSet
+kind: Deployment
 metadata:
   name: locust-worker
   labels:
     role: worker
 spec:
+  replicas: 2
   selector:
     matchLabels:
       role: worker
@@ -16,29 +17,22 @@ spec:
       containers:
       - name: locust-worker
         image: locustio/locust
-        env:
-        - name: LOCUST_HOST
-          value: https://digitalocean.com
-        - name: LOCUST_MASTER_NODE_HOST
-          value: 10.245.135.31
-        - name: LOCUST_MASTER_NODE_PORT
-          value: "5557"
-        - name: LOCUST_LOGLEVEL
-          value: INFO
-        - name: LOCUST_LOCUSTFILE
-          value: "/mnt/locust/app.py"
         args: 
+        - --master-host 
+        - locust-master.default.svc.cluster.local
+        - --host
+        - https://digitalocean.com
         - "--worker"
         resources:
           limits:
-            cpu: 500m
+            cpu: 100m
             memory: 512Mi
           requests:
-            cpu: 500m
+            cpu: 50m
             memory: 256Mi
         volumeMounts:
         - name: locust
-          mountPath: /mnt/locust
+          mountPath: /home/locust
       volumes:
       - name: locust
         configMap:

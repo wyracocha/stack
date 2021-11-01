@@ -5,7 +5,7 @@ REGION ?= "nyc1"
 K8S_VERSION ?= "1.20.11-do.0"
 NODE_COUNT ?= 2
 NODE_SIZE ?= "s-1vcpu-2gb"
-# terraform commands
+# terraform commands to create k8s cluster in do
 init:
 	podman run -v $(PWD)/infra:/infra -w /infra hashicorp/terraform:light init
 plan:
@@ -49,19 +49,38 @@ else
 	echo "Token not set :("
 	exit 1
 endif
-# k8s commands
+# generate ssh key and upload to github
+generate-ssh-key:
+	ssh-keygen -t rsa -b 2048 -N "" -f ~/.ssh/$(SSH-KEY-NAME)
+# install k8s tools
+install-metrics-server: create-kubeconfig
+        @podman run -v ~/.kube/$(CLUSTER_NAME):/.kube/config \
+        bitnami/kubectl:latest apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
+
+# deploy locust cluster in k8s
 create-configmap: create-kubeconfig
 	@podman run -v ~/.kube/$(CLUSTER_NAME):/.kube/config \
 		-v $(PWD):/files \
-	bitnami/kubectl:latest create configmap locust-file --from-file=/files/app.py
+	bitnami/kubectl:latest create configmap locust-file --from-file=/files/locustfile.py
 
-install-metrics-server: create-kubeconfig
-	@podman run -v ~/.kube/$(CLUSTER_NAME):/.kube/config \
-	bitnami/kubectl:latest apply -f https://github.com/kubernetes-sigs/metrics-server/releases/latest/download/components.yaml
-
-deploy-helm-package:
-	podman run -w /helm-package \
-		-v $PWD/helm-package:/helm-package \
+install-locust-helm-package:
+	podman run \
 		-v ~/.kube:/root/.kube \
-		alpine/helm install --atomic --create-namespace -o json --wait -n $(namespace) \
-		--set url=$(url),rampage=$(rampage),timeout=$(timeout),users=$(users) /helm-package
+		-v ~/.helm:/root/.helm \
+		-v ~/.config/helm:/root/.config/helm \
+		-v ~/.cache/helm:/root/.cache/helm \
+		alpine/helm repo add deliveryhero https://charts.deliveryhero.io/
+
+deploy-locust: install-locust-helm-package
+	podman run \
+		-v ~/.kube:/root/.kube \
+		-v ~/.helm:/root/.helm \
+		-v ~/.config/helm:/root/.config/helm \
+		-v ~/.cache/helm:/root/.cache/helm \
+		alpine/helm upgrade locust deliveryhero/locust \
+		--atomic --force --install \
+		--kubeconfig /root/.kube/$(CLUSTER_NAME) \
+		--set loadtest.name=my-loadtest \
+		--set loadtest.locust_locustfile_configmap=my-loadtest-locustfile \
+		--set loadtest.locust_lib_configmap=my-loadtest-lib \
+		--set worker.replicas=10

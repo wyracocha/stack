@@ -16,28 +16,22 @@ spec:
     spec:
       containers:
       - name: locust-master
-        env:
-        - name: LOCUST_HOST
-          value: https://digitalocean.com
-        - name: LOCUST_LOGLEVEL
-          value: INFO
-        - name: LOCUST_LOCUSTFILE
-          value: /mnt/locust/app.py
         image: locustio/locust
         args: 
-        - "--users"
-        - "1000"
-        - "--spawn-rate"
-        - "100"
-        - "--headless"
         - "--master"
         ports:
-        - name: locust
+        - name: headless-p1
           containerPort: 5557
-          protocol: TCP	  
+          protocol: TCP	
+        - name: web
+          containerPort: 8089
+          protocol: TCP
+        - name: headless-p2
+          containerPort: 5558
+          protocol: TCP
         volumeMounts:
         - name: locust
-          mountPath: /mnt/locust
+          mountPath: /home/locust
       volumes:
       - name: locust
         configMap:
