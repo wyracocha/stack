@@ -1,3 +1,6 @@
+variable SSH_KEY_NAME {
+	description = "ssh key name"
+}
 variable CLUSTER_NAME {
 	description = "digitalocean cluster name"
 }

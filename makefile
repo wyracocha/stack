@@ -44,14 +44,28 @@ destroy: checkToken
 	rm out.json ~/.kube/$(CLUSTER_NAME)
 checkToken:
 ifdef DIGITALOCEAN_TOKEN
-	echo "Token set success!"
+	@echo "Token set success!"
 else
-	echo "Token not set :("
+	@echo "Token not set :("
 	exit 1
 endif
+checkGitHubToken:
+ifdef GITHUB_TOKEN
+	@echo "GitHub token set success!"
+else
+	@echo "Token not set :("
+endif
 # generate ssh key and upload to github
+# GITHUB_TOKEN is a required var
+SSH_KEY_NAME ?= github
 generate-ssh-key:
-	ssh-keygen -t rsa -b 2048 -N "" -f ~/.ssh/$(SSH-KEY-NAME)
+	ssh-keygen -t rsa -b 2048 -N "" -f ~/.ssh/$(SSH_KEY_NAME)
+upload-ssh-key: generate-ssh-key
+	podman run -v $(PWD)/infra:/infra -w /infra \
+		-e GITHUB_TOKEN=$(GITHUB_TOKEN) \
+		-e TF_VAR_SSH_KEY_NAME=$(SSH_KEY_NAME) \
+	hashicorp/terraform:light aaply -auto-approve
+
 # install k8s tools
 install-metrics-server: create-kubeconfig
         @podman run -v ~/.kube/$(CLUSTER_NAME):/.kube/config \
